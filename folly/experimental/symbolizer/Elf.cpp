@@ -39,14 +39,6 @@
 
 #if defined(__ELF_NATIVE_CLASS)
 #define FOLLY_ELF_NATIVE_CLASS __ELF_NATIVE_CLASS
-#elif defined(__FreeBSD__)
-#if defined(__LP64__)
-#define FOLLY_ELF_NATIVE_CLASS 64
-#else
-#define FOLLY_ELF_NATIVE_CLASS 32
-#endif
-#elif defined(__ANDROID__)
-#define FOLLY_ELF_NATIVE_CLASS __WORDSIZE
 #else
 #if defined(__LP64__)
 #define FOLLY_ELF_NATIVE_CLASS 64
