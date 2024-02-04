@@ -72,14 +72,14 @@ MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcept {
 }
 
 MemoryMapping::MemoryMapping(
-    File file, off64_t offset, off64_t length, Options options)
+    File file, off_t offset, off_t length, Options options)
     : file_(std::move(file)), options_(options) {
   CHECK(file_);
   init(offset, length);
 }
 
 MemoryMapping::MemoryMapping(
-    const char* name, off64_t offset, off64_t length, Options options)
+    const char* name, off_t offset, off_t length, Options options)
     : MemoryMapping(
           File(name, options.writable ? O_RDWR : O_RDONLY),
           offset,
@@ -87,10 +87,10 @@ MemoryMapping::MemoryMapping(
           options) {}
 
 MemoryMapping::MemoryMapping(
-    int fd, off64_t offset, off64_t length, Options options)
+    int fd, off_t offset, off_t length, Options options)
     : MemoryMapping(File(fd), offset, length, options) {}
 
-MemoryMapping::MemoryMapping(AnonymousType, off64_t length, Options options)
+MemoryMapping::MemoryMapping(AnonymousType, off_t length, Options options)
     : options_(options) {
   init(0, length);
 }
@@ -98,7 +98,7 @@ MemoryMapping::MemoryMapping(AnonymousType, off64_t length, Options options)
 namespace {
 
 #ifdef __linux__
-void getDeviceOptions(dev_t device, off64_t& pageSize, bool& autoExtend) {
+void getDeviceOptions(dev_t device, off_t& pageSize, bool& autoExtend) {
   auto ps = getHugePageSizeForDevice(device);
   if (ps) {
     pageSize = ps->size;
@@ -106,17 +106,17 @@ void getDeviceOptions(dev_t device, off64_t& pageSize, bool& autoExtend) {
   }
 }
 #else
-inline void getDeviceOptions(dev_t, off64_t&, bool&) {}
+inline void getDeviceOptions(dev_t, off_t&, bool&) {}
 #endif
 
 } // namespace
 
-void MemoryMapping::init(off64_t offset, off64_t length) {
+void MemoryMapping::init(off_t offset, off_t length) {
   const bool grow = options_.grow;
   const bool anon = !file_;
   CHECK(!(grow && anon));
 
-  off64_t& pageSize = options_.pageSize;
+  off_t& pageSize = options_.pageSize;
 
 #ifdef _WIN32
   // stat that support files larger then 4Gb
@@ -148,7 +148,7 @@ void MemoryMapping::init(off64_t offset, off64_t length) {
   }
 
   if (pageSize == 0) {
-    pageSize = off64_t(sysconf(_SC_PAGESIZE));
+    pageSize = off_t(sysconf(_SC_PAGESIZE));
   }
 
   CHECK_GT(pageSize, 0);
@@ -156,7 +156,7 @@ void MemoryMapping::init(off64_t offset, off64_t length) {
   CHECK_GE(offset, 0);
 
   // Round down the start of the mapped region
-  off64_t skipStart = offset % pageSize;
+  off_t skipStart = offset % pageSize;
   offset -= skipStart;
 
   mapLength_ = length;
@@ -167,7 +167,7 @@ void MemoryMapping::init(off64_t offset, off64_t length) {
     mapLength_ = (mapLength_ + pageSize - 1) / pageSize * pageSize;
   }
 
-  off64_t remaining = anon ? length : st.st_size - offset;
+  off_t remaining = anon ? length : st.st_size - offset;
 
   if (mapLength_ == -1) {
     length = mapLength_ = remaining;
@@ -228,14 +228,14 @@ void MemoryMapping::init(off64_t offset, off64_t length) {
 
 namespace {
 
-off64_t memOpChunkSize(off64_t length, off64_t pageSize) {
-  off64_t chunkSize = length;
+off_t memOpChunkSize(off_t length, off_t pageSize) {
+  off_t chunkSize = length;
   if (FLAGS_mlock_chunk_size <= 0) {
     return chunkSize;
   }
 
-  chunkSize = off64_t(FLAGS_mlock_chunk_size);
-  off64_t r = chunkSize % pageSize;
+  chunkSize = off_t(FLAGS_mlock_chunk_size);
+  off_t r = chunkSize % pageSize;
   if (r) {
     chunkSize += (pageSize - r);
   }
@@ -254,7 +254,7 @@ bool memOpInChunks(
     Op op,
     void* mem,
     size_t bufSize,
-    off64_t pageSize,
+    off_t pageSize,
     size_t& amountSucceeded) {
   // Linux' unmap/mlock/munlock take a kernel semaphore and block other threads
   // from doing other memory operations. If the size of the buffer is big the
@@ -263,7 +263,7 @@ bool memOpInChunks(
   // chunks breaks the locking into intervals and lets other threads do memory
   // operations of their own.
 
-  auto chunkSize = size_t(memOpChunkSize(off64_t(bufSize), pageSize));
+  auto chunkSize = size_t(memOpChunkSize(off_t(bufSize), pageSize));
 
   auto addr = static_cast<char*>(mem);
   amountSucceeded = 0;
@@ -461,7 +461,7 @@ void mmapFileCopy(const char* src, const char* dest, mode_t mode) {
   MemoryMapping destMap(
       File(dest, O_RDWR | O_CREAT | O_TRUNC, mode),
       0,
-      off64_t(srcMap.range().size()),
+      off_t(srcMap.range().size()),
       MemoryMapping::writable());
 
   alignedForwardMemcpy(
