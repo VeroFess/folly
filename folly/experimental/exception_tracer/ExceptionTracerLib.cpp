@@ -23,6 +23,8 @@
 #include <folly/SharedMutex.h>
 #include <folly/Synchronized.h>
 
+#define FOLLY_STATIC_LIBSTDCXX 1
+
 #if defined(__GLIBCXX__)
 
 #include <dlfcn.h>
